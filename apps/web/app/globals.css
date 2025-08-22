@@ -1,1 +1,19 @@
 @import "tailwindcss";
+.wallet-adapter-button {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-radius: 4px !important;
+  font-size: 13px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  transition: background 0.2s, transform 0.2s !important;
+  font-weight: 500 !important;
+}
+
+.wallet-adapter-button-trigger {
+  padding: 3px 20px !important;
+}
+
+.wallet-adapter-button:hover {
+  background: #f3f4f6 !important;
+  transform: scale(1.05) !important;
+}
