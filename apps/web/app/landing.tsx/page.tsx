@@ -3,8 +3,18 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Wallet, ArrowRight, Shield, Zap, Globe } from 'lucide-react';
 import '@solana/wallet-adapter-react-ui/styles.css';
 import '../globals.css';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Landing() {
+    const wallet = useWallet()
+    const router = useRouter()
+
+    useEffect(()=>{
+        if(wallet.publicKey) router.push('/dashboard')
+    },[wallet.publicKey, router])
+
     return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4">
             <div className="w-full max-w-2xl space-y-12">
