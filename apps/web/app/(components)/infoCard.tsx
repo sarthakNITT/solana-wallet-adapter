@@ -1,11 +1,18 @@
+"use client"
+import { useWallet } from '@solana/wallet-adapter-react';
 import { Copy, Check } from 'lucide-react';
 import { useState } from 'react';
-export default function InfoCard () {
-    const [balance, setBalance] = useState<string>('0.00');
-    const [address, setAddress] = useState<string>('');
+
+interface IIC {
+    amount: string
+}
+
+export default function InfoCard (props: IIC) {
     const [copied, setCopied] = useState<boolean>(false);
-        const copyAddress = async () => {
-        await navigator.clipboard.writeText(address);
+    const wallet = useWallet();
+
+    const copyAddress = async () => {
+        await navigator.clipboard.writeText(wallet.publicKey!.toString());
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -27,12 +34,12 @@ export default function InfoCard () {
             <div>
               <p className="text-sm text-white/50 mb-2">Address</p>
               <p className="text-sm font-mono text-white/80 break-all bg-white/5 p-3 rounded-lg border border-white/10">
-                {address}
+                {wallet.publicKey?.toString()}
               </p>
             </div>
             <div>
               <p className="text-sm text-white/50 mb-2">Balance</p>
-              <p className="text-3xl font-light text-white">{balance} <span className="text-lg text-white/60">SOL</span></p>
+              <p className="text-3xl font-light text-white">{props.amount} <span className="text-lg text-white/60">SOL</span></p>
             </div>
           </div>
         </div>
