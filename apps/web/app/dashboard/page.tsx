@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { 
   Wallet, 
   Send, 
@@ -10,12 +9,12 @@ import {
   FileText, 
   Coins, 
   ArrowUpDown, 
-  LogOut,
-  Copy,
-  Check,
   X
 } from 'lucide-react';
-import { WalletDisconnectButton } from '@solana/wallet-adapter-react-ui';
+import Header from '../(components)/Header';
+import InfoCard from '../(components)/infoCard';
+import OperationGrid from '../(components)/operationGrid';
+
 
 interface WalletOperation {
   id: string;
@@ -34,18 +33,11 @@ export default function Dashboard() {
   const [modalType, setModalType] = useState<string>('');
   const [inputValue, setInputValue] = useState<string>('');
   const [recipientAddress, setRecipientAddress] = useState<string>('');
-  const router = useRouter();
 
   useEffect(() => {
     // Simulate wallet address generation
     setAddress('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU');
   }, []);
-
-  const copyAddress = async () => {
-    await navigator.clipboard.writeText(address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const openModal = (type: string) => {
     setModalType(type);
@@ -164,69 +156,13 @@ export default function Dashboard() {
     <div className="min-h-screen bg-black p-6">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
-              <Wallet className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-light text-white">Wallet Dashboard</h1>
-              <p className="text-sm text-white/50">Manage your Solana assets</p>
-            </div>
-          </div>
-          <div>
-            <WalletDisconnectButton />
-          </div>
-        </div>
+          <Header/>
 
         {/* Wallet Info Card */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-medium text-white">Wallet Information</h2>
-            <button
-              onClick={copyAddress}
-              className="flex items-center space-x-2 text-sm text-white/60 hover:text-white transition-colors"
-            >
-              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              <span>{copied ? 'Copied!' : 'Copy Address'}</span>
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-white/50 mb-2">Address</p>
-              <p className="text-sm font-mono text-white/80 break-all bg-white/5 p-3 rounded-lg border border-white/10">
-                {address}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-white/50 mb-2">Balance</p>
-              <p className="text-3xl font-light text-white">{balance} <span className="text-lg text-white/60">SOL</span></p>
-            </div>
-          </div>
-        </div>
+          <InfoCard/>
 
         {/* Operations Grid */}
-        <div>
-          <h2 className="text-lg font-medium text-white mb-6">Operations</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {operations.map((operation) => (
-              <button
-                key={operation.id}
-                onClick={operation.action}
-                className="group bg-white/5 hover:bg-white/10 rounded-xl p-6 text-left transition-all duration-300 border border-white/10 hover:border-white/20 hover:scale-105"
-              >
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="text-white/80 group-hover:text-white transition-colors">
-                    {operation.icon}
-                  </div>
-                </div>
-                <h3 className="text-sm font-medium text-white mb-1">{operation.name}</h3>
-                <p className="text-xs text-white/50">{operation.description}</p>
-              </button>
-            ))}
-          </div>
-        </div>
+          <OperationGrid/>
 
         {/* Result Display */}
         {result && (

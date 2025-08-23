@@ -1,6 +1,6 @@
 "use client"
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { Wallet, ArrowRight, Shield, Zap, Globe } from 'lucide-react';
+import { Wallet, Shield, Zap, Globe } from 'lucide-react';
 import '@solana/wallet-adapter-react-ui/styles.css';
 import '../globals.css';
 import { useWallet } from '@solana/wallet-adapter-react';
