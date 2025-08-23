@@ -6,6 +6,7 @@ import {
   FileText, 
   Coins, 
   ArrowUpDown, 
+  X
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -26,12 +27,19 @@ export default function OperationGrid () {
     const [recipientAddress, setRecipientAddress] = useState<string>('');
 
 
-    const openModal = (type: string) => {
-        setModalType(type);
-        setShowModal(true);
-        setInputValue('');
-        setRecipientAddress('');
-    };
+  const openModal = (type: string) => {
+    setModalType(type);
+    setShowModal(true);
+    setInputValue('');
+    setRecipientAddress('');
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setModalType('');
+    setInputValue('');
+    setRecipientAddress('');
+  };
     
     const operations: WalletOperation[] = [
     {
@@ -102,7 +110,9 @@ export default function OperationGrid () {
       action: () => openModal('token-transfer')
     }
   ];
+  
     return(
+      <>
         <div>
           <h2 className="text-lg font-medium text-white mb-6">Operations</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -123,5 +133,78 @@ export default function OperationGrid () {
             ))}
           </div>
         </div>
+        {showModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-black border border-white/20 rounded-2xl p-8 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-medium text-white">
+                {modalType === 'airdrop' && 'Airdrop SOL'}
+                {modalType === 'send' && 'Send SOL'}
+                {modalType === 'transfer' && 'Transfer SOL'}
+                {modalType === 'sign' && 'Sign Message'}
+                {modalType === 'token-transfer' && 'Transfer Token'}
+              </h3>
+              <button
+                onClick={closeModal}
+                className="text-white/60 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {(modalType === 'send' || modalType === 'transfer' || modalType === 'token-transfer') && (
+                <div>
+                  <label className="block text-sm text-white/70 mb-2">Recipient Address</label>
+                  <input
+                    type="text"
+                    value={recipientAddress}
+                    onChange={(e) => setRecipientAddress(e.target.value)}
+                    className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-white/40 transition-colors"
+                    placeholder="Enter recipient address..."
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm text-white/70 mb-2">
+                  {modalType === 'airdrop' && 'Amount (SOL)'}
+                  {(modalType === 'send' || modalType === 'transfer') && 'Amount (SOL)'}
+                  {modalType === 'sign' && 'Message'}
+                  {modalType === 'token-transfer' && 'Amount (Tokens)'}
+                </label>
+                <input
+                  type={modalType === 'sign' ? 'text' : 'number'}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-white/40 transition-colors"
+                  placeholder={
+                    modalType === 'sign' 
+                      ? 'Enter message to sign...' 
+                      : 'Enter amount...'
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="flex space-x-3 mt-8">
+              <button
+                onClick={closeModal}
+                className="flex-1 py-3 px-4 bg-white/10 text-white text-sm rounded-lg hover:bg-white/20 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                // onClick={handleModalSubmit}
+                disabled={!inputValue || ((modalType === 'send' || modalType === 'transfer' || modalType === 'token-transfer') && !recipientAddress)}
+                className="flex-1 py-3 px-4 bg-white text-black text-sm rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      </>
     )
 }
