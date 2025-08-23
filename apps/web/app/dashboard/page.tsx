@@ -26,8 +26,6 @@ export default function Dashboard() {
     });
   },[wallet.publicKey, connection])
 
- 
-
   return (
     <div className="min-h-screen bg-black p-6">
       <div className="max-w-6xl mx-auto space-y-8">

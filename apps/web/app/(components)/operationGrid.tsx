@@ -1,3 +1,5 @@
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { 
   Wallet, 
   Send, 
@@ -19,13 +21,14 @@ interface WalletOperation {
 }
 
 export default function OperationGrid () {
-    const [balance, setBalance] = useState<string>('0.00');
-    const [result, setResult] = useState<string>('');
-    const [showModal, setShowModal] = useState(false);
-    const [modalType, setModalType] = useState<string>('');
-    const [inputValue, setInputValue] = useState<string>('');
-    const [recipientAddress, setRecipientAddress] = useState<string>('');
-
+  const [balance, setBalance] = useState<string>('0.00');
+  const [result, setResult] = useState<string>('');
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<string>('');
+  const [inputValue, setInputValue] = useState<string>('');
+  const [recipientAddress, setRecipientAddress] = useState<string>('');
+  const { connection } = useConnection();
+  const wallet = useWallet();
 
   const openModal = (type: string) => {
     setModalType(type);
@@ -39,6 +42,41 @@ export default function OperationGrid () {
     setModalType('');
     setInputValue('');
     setRecipientAddress('');
+  };
+
+  async function handleAirdrop() {
+    setResult(`Requesting ${inputValue} SOL airdrop...`);
+    try {
+      await connection.requestAirdrop(wallet.publicKey!, Number(inputValue)*LAMPORTS_PER_SOL);
+      setResult(`Successfully received ${inputValue} SOL`);
+    } catch (error) {
+      setResult(`Failed to receive ${inputValue} SOL`);
+      console.log(error);
+    }
+  }
+
+  const handleModalSubmit = () => {
+    switch (modalType) {
+      case 'airdrop':
+        handleAirdrop();
+        break;
+      case 'send':
+        setResult(`Sending ${inputValue} SOL to ${recipientAddress.substring(0, 8)}...`);
+        setTimeout(() => setResult('Transaction successful'), 2000);
+        break;
+      case 'transfer':
+        setResult(`Transferring ${inputValue} SOL to ${recipientAddress.substring(0, 8)}...`);
+        setTimeout(() => setResult('Transfer completed'), 2000);
+        break;
+      case 'sign':
+        setResult(`Message signed: "${inputValue}"`);
+        break;
+      case 'token-transfer':
+        setResult(`Transferring ${inputValue} tokens to ${recipientAddress.substring(0, 8)}...`);
+        setTimeout(() => setResult('Token transfer completed'), 2000);
+        break;
+    }
+    closeModal();
   };
     
     const operations: WalletOperation[] = [
@@ -110,7 +148,7 @@ export default function OperationGrid () {
       action: () => openModal('token-transfer')
     }
   ];
-  
+
     return(
       <>
         <div>
@@ -133,6 +171,8 @@ export default function OperationGrid () {
             ))}
           </div>
         </div>
+
+        {/* Modal Section */}
         {showModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-black border border-white/20 rounded-2xl p-8 w-full max-w-md">
@@ -195,7 +235,7 @@ export default function OperationGrid () {
                 Cancel
               </button>
               <button
-                // onClick={handleModalSubmit}
+                onClick={handleModalSubmit}
                 disabled={!inputValue || ((modalType === 'send' || modalType === 'transfer' || modalType === 'token-transfer') && !recipientAddress)}
                 className="flex-1 py-3 px-4 bg-white text-black text-sm rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
