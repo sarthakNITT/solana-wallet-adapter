@@ -1,5 +1,5 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { ed25519 } from '@noble/curves/ed25519';
 import { 
   Wallet, 
@@ -79,14 +79,28 @@ export default function OperationGrid () {
     }
   }
 
+  async function handleSendSol () {
+    setResult(`Sending ${inputValue} SOL to ${recipientAddress.substring(0, 8)}...`);
+    try {
+      const transaction = new Transaction();
+      transaction.add(SystemProgram.transfer({
+        fromPubkey: wallet.publicKey!,
+        toPubkey: new PublicKey(recipientAddress),
+        lamports: Number(inputValue) * LAMPORTS_PER_SOL,
+      }));
+    } catch (error) {
+      setResult(`Failed to send ${inputValue} SOL to ${recipientAddress.substring(0, 8)}...`);
+      console.log(error);
+    }
+  }
+
   const handleModalSubmit = () => {
     switch (modalType) {
       case 'airdrop':
         handleAirdrop();
         break;
       case 'send':
-        setResult(`Sending ${inputValue} SOL to ${recipientAddress.substring(0, 8)}...`);
-        setTimeout(() => setResult('Transaction successful'), 2000);
+        handleSendSol();
         break;
       case 'transfer':
         setResult(`Transferring ${inputValue} SOL to ${recipientAddress.substring(0, 8)}...`);
