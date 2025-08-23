@@ -1,5 +1,6 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { ed25519 } from '@noble/curves/ed25519';
 import { 
   Wallet, 
   Send, 
@@ -55,6 +56,29 @@ export default function OperationGrid () {
     }
   }
 
+  async function handleSignMessage() {
+    setResult(`Message signed: "${inputValue}"`);
+    try {
+      if (!wallet.publicKey){
+        setResult('Wallet not connected!');
+        throw new Error('Wallet not connected');
+      } 
+      if (!wallet.signMessage){
+        setResult('Wallet does not support message signing!');
+        throw new Error('Wallet does not support message signing!');
+      } 
+      const encodedMessage = new TextEncoder().encode(inputValue);
+      const signature = await wallet.signMessage(encodedMessage);
+      if (!ed25519.verify(signature, encodedMessage, wallet.publicKey.toBytes())){
+        setResult('Message signature invalid!');
+      } 
+      setResult(`Message signed: "${inputValue}"\nSignature: ${signature}`);
+    } catch (error) {
+      setResult(`Failed to sign message: "${inputValue}"`);
+      console.log(error);
+    }
+  }
+
   const handleModalSubmit = () => {
     switch (modalType) {
       case 'airdrop':
@@ -69,7 +93,7 @@ export default function OperationGrid () {
         setTimeout(() => setResult('Transfer completed'), 2000);
         break;
       case 'sign':
-        setResult(`Message signed: "${inputValue}"`);
+        handleSignMessage();
         break;
       case 'token-transfer':
         setResult(`Transferring ${inputValue} tokens to ${recipientAddress.substring(0, 8)}...`);
