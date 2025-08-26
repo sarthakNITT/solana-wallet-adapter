@@ -2,7 +2,7 @@ import { WalletDisconnectButton } from '@solana/wallet-adapter-react-ui';
 import { Wallet } from 'lucide-react';
 export default function Header () {
     return (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-15">
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
               <Wallet className="w-6 h-6 text-white" />

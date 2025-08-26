@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
 import Header from '../(components)/Header';
 import InfoCard from '../(components)/infoCard';
 import OperationGrid from '../(components)/operationGrid';
@@ -12,10 +11,6 @@ export default function Dashboard() {
   const [balance, setBalance] = useState<string>('0.00');
   const [address, setAddress] = useState<string>('');
   const [result, setResult] = useState<string>('');
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<string>('');
-  const [inputValue, setInputValue] = useState<string>('');
-  const [recipientAddress, setRecipientAddress] = useState<string>('');
   const wallet = useWallet();
   const { connection } = useConnection();
 

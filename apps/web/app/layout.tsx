@@ -24,10 +24,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ConnectionProvider endpoint={"https://api.devnet.solana.com"}>
-              <WalletProvider wallets={[
-                new PhantomWalletAdapter(),
-                new SolflareWalletAdapter()
-              ]} autoConnect>
+              <WalletProvider wallets={[]} autoConnect>
                 <WalletModalProvider>
                   {children}
                 </WalletModalProvider>

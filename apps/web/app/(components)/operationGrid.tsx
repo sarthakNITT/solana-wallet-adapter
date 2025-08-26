@@ -5,13 +5,23 @@ import {
   Wallet, 
   Send, 
   Download, 
-  Eye, 
   FileText, 
-  Coins, 
-  ArrowUpDown, 
   X
 } from 'lucide-react';
 import { useState } from 'react';
+import { address, createSolanaRpc } from '@solana/kit';
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
+import { mplTokenMetadata, fetchDigitalAsset } from "@metaplex-foundation/mpl-token-metadata";
+import { publicKey } from '@metaplex-foundation/umi';
+import axios from 'axios';
+import { createTransferInstruction } from "@solana/spl-token"
+
+interface ITD {
+    tokenBalance: string,
+    tokenName: string,
+    tokenSymbol: string,
+    tokenLogo: string
+}
 
 interface WalletOperation {
   id: string;
@@ -22,14 +32,17 @@ interface WalletOperation {
 }
 
 export default function OperationGrid () {
-  const [balance, setBalance] = useState<string>('0.00');
   const [result, setResult] = useState<string>('');
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<string>('');
   const [inputValue, setInputValue] = useState<string>('');
   const [recipientAddress, setRecipientAddress] = useState<string>('');
+  const [senderAddress, setSenderAddress] = useState<string>('');
+  const [tokenDetails, setTokenDetails] = useState<ITD[]>([])
   const { connection } = useConnection();
   const wallet = useWallet();
+
+  const umi = createUmi("https://api.devnet.solana.com").use(mplTokenMetadata());
 
   const openModal = (type: string) => {
     setModalType(type);
@@ -94,6 +107,67 @@ export default function OperationGrid () {
     }
   }
 
+  async function handleTokenBalance () {
+    try {
+      const rpc = createSolanaRpc("https://api.devnet.solana.com");
+      if(!wallet.publicKey) return;
+      const walletAddress = address(wallet.publicKey.toBase58());
+      const response = await rpc.getTokenAccountsByOwner(
+        walletAddress!,
+        {programId: address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")},
+        {encoding: "jsonParsed"}
+      ).send();
+      const newTokenDetails: ITD[] = [];
+      for (const accInfo of response.value) {
+        // const tokens = (await new TokenListProvider().resolve()).filterByClusterSlug('devnet').getList();
+        const tokenAccKey = accInfo.pubkey;
+        const parsedInfo = accInfo.account.data.parsed.info;
+        const mintAdd = new PublicKey(parsedInfo.mint);
+
+        try {
+          const asset = await fetchDigitalAsset(umi, publicKey(mintAdd.toBase58()));
+          const balance = await rpc.getTokenAccountBalance(tokenAccKey).send();
+          const metaDataJson = await axios(asset.metadata.uri).then((res: any) => res.json());
+          newTokenDetails.push({
+            tokenBalance: balance.value.uiAmountString!,
+            tokenName: asset?.metadata.name!,
+            tokenLogo: metaDataJson.image,
+            tokenSymbol: asset?.metadata.symbol!
+          });
+          // setTokenDetails(prev => [...prev, {tokenBalance: balance.value.uiAmountString!, tokenName: asset?.metadata.name!, tokenLogo: metaDataJson.image, tokenSymbol: asset?.metadata.symbol!}])
+        } catch (error) {
+          const balance = await rpc.getTokenAccountBalance(tokenAccKey).send();
+          newTokenDetails.push({
+            tokenBalance: balance.value.uiAmountString!,
+            tokenName: "Unknown Token",
+            tokenLogo: "",
+            tokenSymbol: "null"
+          });
+        }
+        setResult('');
+        // const info = tokens.find(e => e.address === mintAdd.toBase58());
+        // console.log(info?.name, info?.logoURI, info?.symbol);
+      }
+      setTokenDetails(newTokenDetails); 
+    } catch (error) {
+      setResult('Failed to fetch token balance');
+      console.log(error);
+    }
+  }
+
+  async function handleTransferToken () {
+    const transaction = new Transaction().add(
+      createTransferInstruction(
+        new PublicKey(senderAddress),
+        new PublicKey(recipientAddress),
+        wallet.publicKey!,
+        Number(inputValue)
+      )
+    )
+    const signature = await wallet.sendTransaction(transaction, connection);
+    await connection.confirmTransaction(signature, "confirmed");
+  }
+
   const handleModalSubmit = () => {
     switch (modalType) {
       case 'airdrop':
@@ -110,8 +184,7 @@ export default function OperationGrid () {
         handleSignMessage();
         break;
       case 'token-transfer':
-        setResult(`Transferring ${inputValue} tokens to ${recipientAddress.substring(0, 8)}...`);
-        setTimeout(() => setResult('Token transfer completed'), 2000);
+        handleTransferToken();
         break;
     }
     closeModal();
@@ -126,27 +199,11 @@ export default function OperationGrid () {
       action: () => openModal('airdrop')
     },
     {
-      id: 'balance',
-      name: 'Check Balance',
-      description: 'View current SOL balance',
-      icon: <Eye className="w-5 h-5" />,
-      action: () => {
-        setResult(`Current balance: ${balance} SOL`);
-      }
-    },
-    {
       id: 'send',
       name: 'Send SOL',
       description: 'Send SOL to another wallet',
       icon: <Send className="w-5 h-5" />,
       action: () => openModal('send')
-    },
-    {
-      id: 'transfer',
-      name: 'Transfer SOL',
-      description: 'Transfer SOL between accounts',
-      icon: <ArrowUpDown className="w-5 h-5" />,
-      action: () => openModal('transfer')
     },
     {
       id: 'sign',
@@ -156,26 +213,14 @@ export default function OperationGrid () {
       action: () => openModal('sign')
     },
     {
-      id: 'metadata',
-      name: 'Token Metadata',
-      description: 'View token information',
-      icon: <Coins className="w-5 h-5" />,
-      action: () => {
-        setResult('Fetching token metadata...');
-        setTimeout(() => setResult('Metadata: SOL - Solana Native Token\nSymbol: SOL\nDecimals: 9'), 1500);
-      }
-    },
-    {
       id: 'token-balance',
       name: 'Custom Token Balance',
       description: 'Check specific token balance',
       icon: <Wallet className="w-5 h-5" />,
       action: () => {
-        const tokenAddress = prompt('Enter token mint address:');
-        if (tokenAddress) {
-          setResult(`Checking balance for: ${tokenAddress.substring(0, 8)}...`);
-          setTimeout(() => setResult('Token balance: 0.00'), 1500);
-        }
+        setResult('Fetching token balance...');
+        openModal('token-balance')
+        handleTokenBalance();
       }
     },
     {
@@ -221,6 +266,7 @@ export default function OperationGrid () {
                 {modalType === 'transfer' && 'Transfer SOL'}
                 {modalType === 'sign' && 'Sign Message'}
                 {modalType === 'token-transfer' && 'Transfer Token'}
+                {modalType === 'token-balance' && 'Check Token Balance'}
               </h3>
               <button
                 onClick={closeModal}
@@ -231,6 +277,19 @@ export default function OperationGrid () {
             </div>
 
             <div className="space-y-4">
+              {(modalType === 'token-transfer') && (
+                <div>
+                  <label className="block text-sm text-white/70 mb-2">Sender Token Account Address</label>
+                  <input
+                    type="text"
+                    value={senderAddress}
+                    onChange={(e) => setSenderAddress(e.target.value)}
+                    className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-white/40 transition-colors"
+                    placeholder="Enter Sender's address..."
+                  />
+                </div>
+              )}
+              
               {(modalType === 'send' || modalType === 'transfer' || modalType === 'token-transfer') && (
                 <div>
                   <label className="block text-sm text-white/70 mb-2">Recipient Address</label>
@@ -244,42 +303,61 @@ export default function OperationGrid () {
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm text-white/70 mb-2">
-                  {modalType === 'airdrop' && 'Amount (SOL)'}
-                  {(modalType === 'send' || modalType === 'transfer') && 'Amount (SOL)'}
-                  {modalType === 'sign' && 'Message'}
-                  {modalType === 'token-transfer' && 'Amount (Tokens)'}
-                </label>
-                <input
-                  type={modalType === 'sign' ? 'text' : 'number'}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-white/40 transition-colors"
-                  placeholder={
-                    modalType === 'sign' 
-                      ? 'Enter message to sign...' 
-                      : 'Enter amount...'
-                  }
-                />
-              </div>
-            </div>
+              {(modalType === 'token-balance') && (
+                <div>
+                  <label className="block text-sm text-white/70 mb-2">Token Balance</label>
+                  {result !== '' && <div className='text-white'>{result}</div>}
+                  {tokenDetails.map((token, index)=>{
+                    return (
+                      <div key={index} className='text-white mb-4'>
+                        <div>Token Name: {token.tokenName}</div>
+                        <div>Token Symbol: {token.tokenSymbol}</div>
+                        <div>Token Logo: {token.tokenLogo}</div>
+                        <div>Token Balance: {token.tokenBalance} SOL</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
 
-            <div className="flex space-x-3 mt-8">
-              <button
-                onClick={closeModal}
-                className="flex-1 py-3 px-4 bg-white/10 text-white text-sm rounded-lg hover:bg-white/20 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleModalSubmit}
-                disabled={!inputValue || ((modalType === 'send' || modalType === 'transfer' || modalType === 'token-transfer') && !recipientAddress)}
-                className="flex-1 py-3 px-4 bg-white text-black text-sm rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Confirm
-              </button>
+              {modalType !== 'token-balance' && (
+                <div>
+                  <label className="block text-sm text-white/70 mb-2">
+                    {modalType === 'airdrop' && 'Amount (SOL)'}
+                    {(modalType === 'send' || modalType === 'transfer') && 'Amount (SOL)'}
+                    {modalType === 'sign' && 'Message'}
+                    {modalType === 'token-transfer' && 'Amount (Tokens)'}
+                  </label>
+                  <input
+                    type={modalType === 'sign' ? 'text' : 'number'}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-white/40 transition-colors"
+                    placeholder={
+                      modalType === 'sign' ? 'Enter message to sign...' : 'Enter amount...'
+                    }
+                    />
+                </div>
+              )}
             </div>
+            
+            {modalType !== 'token-balance' && (
+              <div className="flex space-x-3 mt-8">
+                <button
+                  onClick={closeModal}
+                  className="flex-1 py-3 px-4 bg-white/10 text-white text-sm rounded-lg hover:bg-white/20 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleModalSubmit}
+                  disabled={!inputValue || ((modalType === 'send' || modalType === 'transfer' || modalType === 'token-transfer') && !recipientAddress)}
+                  className="flex-1 py-3 px-4 bg-white text-black text-sm rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Confirm
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
